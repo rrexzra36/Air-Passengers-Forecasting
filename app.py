@@ -2,26 +2,27 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from statsmodels.tsa.statespace.sarimax import SARIMAX
-from sklearn.metrics import mean_squared_error
+import joblib
+import os
 import warnings
 
-# Ignore warnings for cleaner output
+# Abaikan warnings untuk output yang lebih bersih
 warnings.filterwarnings("ignore")
 
-# --- Page Configuration ---
+# --- Konfigurasi Halaman ---
 st.set_page_config(
-    page_title="Dashboard Uji Model Time Series",
-    page_icon="📈",
+    page_title="Aplikasi Prediksi Time Series",
+    page_icon="🔮",
     layout="wide"
 )
 
-# --- Function to load and process data ---
+
+# --- Fungsi Pemuatan Data dan Model ---
+
 @st.cache_data
 def load_data():
     """
-    Loads and preprocesses the airline passenger dataset.
-    The data is cached to avoid reloading on every interaction.
+    Memuat dan memproses dataset penumpang maskapai.
     """
     url = 'https://raw.githubusercontent.com/jbrownlee/Datasets/master/airline-passengers.csv'
     df = pd.read_csv(url)
@@ -30,121 +31,102 @@ def load_data():
     df.set_index('Bulan', inplace=True)
     return df
 
-# --- Main Application ---
-st.title("📈 Dashboard Uji Coba Model Time Series")
-st.write("Gunakan dashboard ini untuk menguji performa model **SARIMA** dengan parameter yang berbeda secara interaktif.")
-
-# Load the data
-data = load_data()
-
-# --- Sidebar for User Inputs ---
-with st.sidebar:
-    st.header("⚙️ Pengaturan Model")
+@st.cache_resource
+def load_model():
+    """
+    Memuat model SARIMA yang sudah dilatih dari file model/sarima_model.pkl.
+    """
+    model_path = 'model/sarima_model.pkl'
+    if not os.path.exists(model_path):
+        st.error(f"File model '{model_path}' tidak ditemukan.")
+        st.info("Pastikan file 'model_sarima.pkl' berada di folder yang sama dengan script aplikasi ini.")
+        return None
     
-    # Slider for train-test split
-    train_split_percentage = st.slider(
-        "Persentase Data Latih (%)", 
-        min_value=50, 
-        max_value=95, 
-        value=80, 
-        step=5,
-        help="Geser untuk menentukan berapa banyak data yang digunakan untuk melatih model."
+    try:
+        model = joblib.load(model_path)
+        return model
+    except Exception as e:
+        st.error(f"Gagal memuat model: {e}")
+        return None
+
+# --- Aplikasi Utama ---
+st.title("🔮 Aplikasi Prediksi Penumpang Maskapai")
+st.write("Aplikasi ini menggunakan model SARIMA yang sudah dilatih untuk memprediksi jumlah penumpang di masa depan.")
+
+# Muat data dan model yang sudah dilatih dari file
+data = load_data()
+model = load_model()
+
+# --- Sidebar untuk Input Pengguna ---
+with st.sidebar:
+    st.header("⚙️ Pengaturan Prediksi")
+    
+    # Input untuk jumlah bulan yang akan diprediksi
+    n_forecast = st.number_input(
+        "Jumlah bulan untuk diprediksi:", 
+        min_value=1, 
+        max_value=48, 
+        value=12, 
+        step=1,
+        help="Masukkan berapa bulan ke depan Anda ingin melihat prediksi."
     )
 
-    st.subheader("Parameter SARIMA (p, d, q)")
-    # Input for non-seasonal order
-    p = st.number_input("p (Orde AR)", min_value=0, max_value=5, value=1)
-    d = st.number_input("d (Orde Diferensiasi)", min_value=0, max_value=5, value=1)
-    q = st.number_input("q (Orde MA)", min_value=0, max_value=5, value=1)
-
-    st.subheader("Parameter Musiman (P, D, Q, m)")
-    # Input for seasonal order
-    P = st.number_input("P (Orde AR Musiman)", min_value=0, max_value=5, value=1)
-    D = st.number_input("D (Orde Diferensiasi Musiman)", min_value=0, max_value=5, value=1)
-    Q = st.number_input("Q (Orde MA Musiman)", min_value=0, max_value=5, value=1)
-    m = st.number_input("m (Periode Musiman)", min_value=1, max_value=24, value=12, help="Biasanya 12 untuk data bulanan.")
-
-    # Button to run the model
-    run_button = st.button("Latih dan Prediksi Model", type="primary", use_container_width=True)
+    # Tombol untuk menjalankan prediksi
+    run_forecast = st.button("Prediksi", type="primary", use_container_width=True)
 
 
-# --- Main Panel for Outputs ---
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    st.subheader("Visualisasi Data Penumpang")
-    # Display the original data plot
+# --- Panel Utama untuk Output ---
+# Hanya tampilkan output jika model berhasil dimuat
+if model:
+    # Tampilkan data historis terlebih dahulu
+    st.subheader("Data Historis Jumlah Penumpang (1949-1960)")
     fig_data, ax_data = plt.subplots(figsize=(12, 6))
-    ax_data.plot(data.index, data['Jumlah_Penumpang'], label='Jumlah Penumpang Aktual', color='#0072B2')
-    ax_data.set_title('Jumlah Penumpang Maskapai Bulanan (1949-1960)')
+    ax_data.plot(data.index, data['Jumlah_Penumpang'], label='Data Historis', color='#0072B2')
+    ax_data.set_title('Jumlah Penumpang Maskapai Bulanan')
     ax_data.set_xlabel('Tahun')
     ax_data.set_ylabel('Jumlah Penumpang')
     ax_data.grid(True, linestyle='--', alpha=0.6)
     st.pyplot(fig_data)
 
-with col2:
-    st.subheader("Data Mentah")
-    st.dataframe(data.head())
+    # --- Logika dan Tampilan Prediksi ---
+    if run_forecast:
+        st.divider()
+        st.header(f"Hasil Prediksi untuk {n_forecast} Bulan ke Depan")
 
-
-# --- Model Training and Prediction Logic ---
-if run_button:
-    st.divider()
-    st.header("Hasil Prediksi Model")
-
-    # Split data based on user input
-    train_size = int(len(data) * (train_split_percentage / 100))
-    train_data, test_data = data['Jumlah_Penumpang'][0:train_size], data['Jumlah_Penumpang'][train_size:]
-
-    # Define model orders from user input
-    order = (p, d, q)
-    seasonal_order = (P, D, Q, m)
-
-    with st.spinner(f"Melatih model SARIMA dengan order={order} dan seasonal_order={seasonal_order}..."):
-        try:
-            # Build and fit the SARIMA model
-            model_sarima = SARIMAX(train_data, order=order, seasonal_order=seasonal_order)
-            fit_sarima = model_sarima.fit(disp=False)
-
-            # Make predictions
-            start_index = len(train_data)
-            end_index = len(data) - 1
-            predictions = fit_sarima.predict(start=start_index, end=end_index, typ='levels')
-
-            # Calculate error
-            rmse = np.sqrt(mean_squared_error(test_data, predictions))
-
-            # Display results
-            res_col1, res_col2 = st.columns(2)
-            with res_col1:
-                st.metric(label="Root Mean Squared Error (RMSE)", value=f"{rmse:.2f}", help="Semakin rendah nilainya, semakin baik modelnya.")
+        with st.spinner("Membuat prediksi..."):
+            # Gunakan metode .get_forecast() untuk membuat prediksi masa depan
+            forecast_result = model.get_forecast(steps=n_forecast)
             
-            with res_col2:
-                 st.info(f"Model dilatih dengan {train_split_percentage}% data.")
+            # Dapatkan hasil prediksi dan interval kepercayaan
+            forecast_values = forecast_result.predicted_mean
+            confidence_intervals = forecast_result.conf_int()
 
-            # Visualize the prediction results
-            col3, col4 = st.columns([2, 1])
+            # --- Tampilkan hasil dalam layout 2 kolom ---
+            res_col1, res_col2 = st.columns([2, 1])
 
-            with col3:
-                st.subheader("Grafik Perbandingan Prediksi")
+            with res_col1:
+                # Visualisasi hasil prediksi
+                st.subheader("Grafik Prediksi")
                 fig_pred, ax_pred = plt.subplots(figsize=(12, 6))
-                ax_pred.plot(train_data.index, train_data, label='Data Latih', color='gray')
-                ax_pred.plot(test_data.index, test_data, label='Data Aktual (Test)', color='#0072B2', marker='o', linestyle='--')
-                ax_pred.plot(predictions.index, predictions, label='Prediksi SARIMA', color='#D55E00', marker='x')
-                ax_pred.set_title('Perbandingan Model SARIMA dengan Data Aktual', fontsize=16)
-                ax_pred.set_xlabel('Tahun', fontsize=12)
-                ax_pred.set_ylabel('Jumlah Penumpang', fontsize=12)
+                
+                ax_pred.plot(data.index, data['Jumlah_Penumpang'], label='Data Historis', color='#0072B2')
+                ax_pred.plot(forecast_values.index, forecast_values, label='Data Prediksi', color='#D55E00', linestyle='--')
+                ax_pred.fill_between(confidence_intervals.index,
+                                     confidence_intervals.iloc[:, 0],
+                                     confidence_intervals.iloc[:, 1], color='orange', alpha=0.2, label='Interval Kepercayaan (95%)')
+
+                ax_pred.set_title('Prediksi Jumlah Penumpang di Masa Depan')
+                ax_pred.set_xlabel('Tahun')
+                ax_pred.set_ylabel('Jumlah Penumpang')
                 ax_pred.legend()
                 ax_pred.grid(True, linestyle='--', alpha=0.6)
                 st.pyplot(fig_pred)
 
-            with col4:
-                # Show prediction data
-                st.subheader("Data Prediksi vs Aktual")
-                comparison_df = pd.DataFrame({'Data Aktual': test_data, 'Hasil Prediksi': predictions})
-                st.dataframe(comparison_df)
-
-        except Exception as e:
-            st.error(f"Terjadi kesalahan saat melatih model: {e}")
-            st.warning("Coba gunakan kombinasi parameter (p,d,q) dan (P,D,Q,m) yang berbeda. Kombinasi tertentu dapat menyebabkan error konvergensi.")
-
+            with res_col2:
+                st.subheader("Tabel Data Prediksi")
+                forecast_df = pd.DataFrame({
+                    'Bulan': forecast_values.index.strftime('%Y-%m'),
+                    'Prediksi Penumpang': forecast_values.values.astype(int)
+                })
+                st.dataframe(forecast_df, use_container_width=True)
+                st.info("Interval kepercayaan menunjukkan rentang di mana nilai aktual kemungkinan besar akan berada.")
