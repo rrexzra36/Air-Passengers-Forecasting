@@ -9,7 +9,7 @@ Permasalahan bisnis utama yang ingin diselesaikan adalah bagaimana cara membuat 
 
 ## **Cakupan Proyek**
 
-Proyek ini berfokus pada pengembangan dan evaluasi model time-series (ARIMA *Series*) sebagai fondasi untuk sistem peramalan ini, yang kemudian di-deploy menjadi sebuah aplikasi web interaktif untuk penggunaan praktis.
+Proyek ini mencakup keseluruhan alur kerja pengembangan model *time-series*, mulai dari persiapan data, pembangunan model, pelatihan, evaluasi, hingga implementasinya dalam sebuah aplikasi web interaktif.
 
 ### Pemahaman Data (*Data Understanding*)
 Data yang digunakan adalah dataset "Air Passengers" yang berisi data bulanan jumlah penumpang maskapai dari Januari 1949 hingga Desember 1960. Dataset ini terdiri dari dua kolom: '*Month*' dan '*Passengers*'. Dari hasil eksplorasi data, ditemukan beberapa karakteristik kunci:
