@@ -9,7 +9,7 @@ Permasalahan bisnis utama yang ingin diselesaikan adalah bagaimana cara membuat 
 
 ## **Cakupan Proyek**
 
-Tantangan utamanya adalah membangun sebuah sistem peramalan yang andal untuk memprediksi jumlah penumpang maskapai bulanan, mengingat data historis menunjukkan adanya tren pertumbuhan jangka panjang dan pola musiman yang kuat. Proyek ini berfokus pada pengembangan dan evaluasi model time series SARIMA sebagai fondasi untuk sistem peramalan ini, yang kemudian di-deploy menjadi sebuah aplikasi web interaktif untuk penggunaan praktis.
+Proyek ini berfokus pada pengembangan dan evaluasi model time-series (ARIMA *Series*) sebagai fondasi untuk sistem peramalan ini, yang kemudian di-deploy menjadi sebuah aplikasi web interaktif untuk penggunaan praktis.
 
 ### Pemahaman Data (*Data Understanding*)
 Data yang digunakan adalah dataset "Air Passengers" yang berisi data bulanan jumlah penumpang maskapai dari Januari 1949 hingga Desember 1960. Dataset ini terdiri dari dua kolom: '*Month*' dan '*Passengers*'. Dari hasil eksplorasi data, ditemukan beberapa karakteristik kunci:
@@ -47,7 +47,7 @@ Parameter untuk model SARIMA dan SARIMAX, yaitu `order=(1, 1, 1)` dan `seasonal_
 Evaluasi model dilakukan dengan membagi data menjadi 80% data latih dan 20% data uji. Performa model diukur dengan menghitung `Root Mean Squared Error (RMSE)` antara nilai prediksi pada data uji dan nilai aktualnya.
 
 ### *Deployment*
-Model terbaik, yaitu SARIMA dengan parameter `order=(1, 1, 1)` dan `seasonal_order=(1, 1, 1, 12)`, dilatih kembali menggunakan seluruh dataset untuk memaksimalkan pembelajaran. Model yang sudah final ini kemudian disimpan ke dalam sebuah file bernama sarima_model.pkl menggunakan joblib.
+Model terbaik, yaitu SARIMA dengan parameter `order=(1, 1, 1)` dan `seasonal_order=(1, 1, 1, 12)`, dilatih kembali menggunakan seluruh dataset untuk memaksimalkan pembelajaran. Model yang sudah final ini kemudian disimpan ke dalam sebuah file bernama sarima_model.pkl.
 
 Model yang telah disimpan ini kemudian di-deploy melalui Streamlit. Aplikasi ini memuat model dan menyediakan interface bagi pengguna untuk memasukkan jumlah bulan yang ingin diprediksi ke depan.
 
@@ -79,7 +79,7 @@ Remove-Item -Recurse -Force .\.env --> menghapus virtual enviroment
 Aplikasi ini dibangun dengan Streamlit dan dapat dijalankan secara lokal. Cara menjalankan Aplikasinya adalah sebagai berikut:
 1. Pastikan library yang diperlukan telah terinstall (`reqirements.txt`).
 
-2. Pastikan file model yang telah sudah didalam direktori.
+2. Pastikan file model sudah didalam direktori.
 
 3. Buka terminal atau command prompt, arahkan ke direktori proyek.
 
